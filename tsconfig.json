@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    /* Output */
+    "outDir": "dist",
+    "rootDir": "src",
+
+    /* Language */
+    "target": "es2017",
+    "module": "commonjs",
+    "lib": ["es2020"],
+
+    /* Module Resolution */
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+
+    /* Type Checking */
+    "strict": true,
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+
+    /* Emit Options */
+    "removeComments": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}
