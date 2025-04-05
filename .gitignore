@@ -15,4 +15,8 @@ dist/
 
 # Optional cache files
 *.tsbuildinfo
+# Google Cloud SDK credentials
 credentials.json
+
+google-cloud-sdk/
+google-cloud-sdk-*.tar.gz
