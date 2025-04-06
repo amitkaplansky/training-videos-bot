@@ -5,7 +5,11 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 
-const bot = new TelegramBot(process.env.BOT_TOKEN as string, { polling: true });
+const bot = new TelegramBot(process.env.BOT_TOKEN as string, {
+  webHook: true,
+});
+
+bot.setWebHook(`${process.env.PUBLIC_URL}/webhook`);
 
 interface UserState {
   step: string;
