@@ -236,3 +236,10 @@ bot.on('message', async (msg: Message) => {
       return sendSafeMessage(bot, chatId, 'Please choose a valid option.');
   }
 });
+
+// Prevent Cloud Run from crashing: dummy server
+import http from 'http';
+http.createServer((_, res) => {
+  res.writeHead(200);
+  res.end('Bot is running!');
+}).listen(process.env.PORT || 8080);
