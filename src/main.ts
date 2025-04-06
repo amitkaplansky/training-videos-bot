@@ -30,18 +30,17 @@ function keyboardFromLabels(labels: string[][]): KeyboardButton[][] {
   return labels.map(row => row.map(label => ({ text: label })));
 }
 
-function showMainMenu(chatId: number) {
-  userStates.delete(chatId);
-  bot.sendMessage(chatId, '👋 What would you like to do?', {
+bot.onText(/\/start/, async (msg: Message) => {
+  const chatId = msg.chat.id;
+  const tags = await getAllTags();
+  if (tags.length === 0) return sendSafeMessage(bot, chatId, '⚠️ No tags found.');
+  userStates.set(chatId, { step: 'awaiting_tag', data: {} });
+  return bot.sendMessage(chatId, '💪 Choose the type of training you want:', {
     reply_markup: {
-      keyboard: keyboardFromLabels([['📽 Get Videos', '➕ Add Video']]),
+      keyboard: keyboardFromLabels(tags.map(tag => [tag])),
       one_time_keyboard: true,
     },
   });
-}
-
-bot.onText(/\/start/, (msg: Message) => {
-  showMainMenu(msg.chat.id);
 });
 
 bot.onText(/\/clean/, async (msg: Message) => {
@@ -62,56 +61,36 @@ bot.onText(/\/clean/, async (msg: Message) => {
 bot.on('message', async (msg: Message) => {
   const chatId = msg.chat.id;
   const text = msg.text?.trim();
-  const state = userStates.get(chatId);
   if (!text || text.startsWith('/')) return;
 
-  if (text === '🏠 Main Menu') return showMainMenu(chatId);
+  const state = userStates.get(chatId);
 
-  if (text.includes('instagram.com') && !state) {
+  if (text.includes('instagram.com')) {
     const isDuplicate = await isDuplicateUrl(text);
-    if (isDuplicate) return sendSafeMessage(bot, chatId, '⚠️ This video already exists.');
+    if (isDuplicate) {
+      userStates.delete(chatId);
+      return sendSafeMessage(bot, chatId, '⚠️ This video already exists.');
+    }
 
     userStates.set(chatId, {
       step: 'awaiting_password_for_link',
       data: { url: text },
     });
-    return sendSafeMessage(bot, chatId, '🔒 Instagram link detected. Please enter the admin password to continue.\n\n(You can always type /start to return to the main menu)');
-  }
 
-  if (text === '📽 Get Videos') {
-    const tags = await getAllTags();
-    if (tags.length === 0) return sendSafeMessage(bot, chatId, '⚠️ No tags found.');
-    userStates.set(chatId, { step: 'awaiting_tag', data: {} });
-    return bot.sendMessage(chatId, 'Choose a tag:', {
-      reply_markup: {
-        keyboard: keyboardFromLabels(tags.map(tag => [tag])),
-        one_time_keyboard: true,
-      },
-    });
-  }
-
-  if (text === '➕ Add Video') {
-    userStates.set(chatId, { step: 'awaiting_password', data: {} });
-    return sendSafeMessage(bot, chatId, '🔒 Please enter the admin password.\n\n(You can always type /start to return to the main menu)');
-  }
-
-  if (text === '➕ Add Another') {
-    userStates.set(chatId, { step: 'awaiting_title', data: {} });
-    return sendSafeMessage(bot, chatId, 'What is the video title?\n\n(You can always type /start to return to the main menu)');
+    return sendSafeMessage(bot, chatId, '🔒 Instagram link detected. Please enter the admin password to continue.');
   }
 
   if (!state) return;
 
   switch (state.step) {
     case 'awaiting_password_for_link':
-    case 'awaiting_password':
       if (text === process.env.ADMIN_PASSWORD) {
         try { await bot.deleteMessage(chatId, msg.message_id); } catch {}
-        state.step = state.step === 'awaiting_password_for_link' ? 'awaiting_title_for_link' : 'awaiting_title';
+        state.step = 'awaiting_title_for_link';
         userStates.set(chatId, state);
-        return sendSafeMessage(bot, chatId, '✅ Password accepted.\n\nWhat is the video title?\n\n(You can always type /start to return to the main menu)');
+        return sendSafeMessage(bot, chatId, '✅ Password accepted.\n\nWhat is the video title?');
       } else {
-        return sendSafeMessage(bot, chatId, '❌ Incorrect password. Please try again.\n\n(You can always type /start to return to the main menu)');
+        return sendSafeMessage(bot, chatId, '❌ Incorrect password. Please try again.');
       }
 
     case 'awaiting_title_for_link':
@@ -120,7 +99,7 @@ bot.on('message', async (msg: Message) => {
       userStates.set(chatId, state);
       return bot.sendMessage(chatId, 'How would you like to enter tags?', {
         reply_markup: {
-          keyboard: keyboardFromLabels([['🗂 Choose from List', '⌨️ Type My Own']]),
+          keyboard: keyboardFromLabels([[ '🗂 Choose from List', '⌨️ Type My Own' ]]),
           one_time_keyboard: true,
         },
       });
@@ -129,25 +108,10 @@ bot.on('message', async (msg: Message) => {
       state.data.title = text;
       state.step = 'awaiting_url';
       userStates.set(chatId, state);
-      return sendSafeMessage(bot, chatId, '📎 Send the Instagram video URL.\n\n(You can always type /start to return to the main menu)');
+      return sendSafeMessage(bot, chatId, '📎 Send the Instagram video URL.');
 
     case 'awaiting_url':
-      if (!text.includes('instagram.com')) return sendSafeMessage(bot, chatId, '❌ Please enter a valid Instagram link.\n\n(You can always type /start to return to the main menu)');
-      const isDuplicate = await isDuplicateUrl(text);
-      if (isDuplicate) {
-        sendSafeMessage(bot, chatId, '⚠️ This video already exists.');
-        userStates.delete(chatId);
-        return;
-      }
-      state.data.url = text;
-      state.step = 'choose_tag_mode';
-      userStates.set(chatId, state);
-      return bot.sendMessage(chatId, 'How would you like to enter tags?', {
-        reply_markup: {
-          keyboard: keyboardFromLabels([['🗂 Choose from List', '⌨️ Type My Own']]),
-          one_time_keyboard: true,
-        },
-      });
+      return sendSafeMessage(bot, chatId, '📎 Please send the Instagram link directly to begin.');
 
     case 'choose_tag_mode':
       if (text === '🗂 Choose from List') {
@@ -167,35 +131,36 @@ bot.on('message', async (msg: Message) => {
         state.data.tagChoiceMode = 'manual';
         state.step = 'awaiting_tags';
         userStates.set(chatId, state);
-        return sendSafeMessage(bot, chatId, 'Enter tags separated by commas (e.g. strength, mobility).\n\n(You can always type /start to return to the main menu)');
+        return sendSafeMessage(bot, chatId, 'Enter tags separated by commas (e.g. strength, mobility).');
       }
       return bot.sendMessage(chatId, '❌ Please choose a valid option:', {
         reply_markup: {
-          keyboard: keyboardFromLabels([['🗂 Choose from List', '⌨️ Type My Own']]),
+          keyboard: keyboardFromLabels([[ '🗂 Choose from List', '⌨️ Type My Own' ]]),
           one_time_keyboard: true,
         },
       });
 
-    case 'choosing_tags':
+    case 'choosing_tags': {
+      const allTags = await getAllTags();
       if (text === '✅ Done') {
         const tags = (state.data.selectedTags || []).join(',');
         if (!tags) return sendSafeMessage(bot, chatId, '⚠️ No tags selected. Please choose at least one.');
         await addVideo(state.data.title!, state.data.url!, tags);
-        userStates.delete(chatId);
-        return bot.sendMessage(chatId, '✅ Video added successfully!\nWhat next?', {
+        userStates.set(chatId, { step: 'awaiting_tag', data: {} });
+        return bot.sendMessage(chatId, '🏋️‍♀️ Let\'s go! Now pick your training type', {
           reply_markup: {
-            keyboard: keyboardFromLabels([['➕ Add Another', '🏠 Main Menu']]),
+            keyboard: keyboardFromLabels(allTags.map(tag => [tag])),
             one_time_keyboard: true,
           },
         });
       }
-      const allTags = await getAllTags();
-      if (allTags.includes(text.toLowerCase())) {
-        if (!state.data.selectedTags?.includes(text.toLowerCase())) {
-          state.data.selectedTags!.push(text.toLowerCase());
+      const normalizedText = text.toLowerCase();
+      if (allTags.includes(normalizedText)) {
+        if (!state.data.selectedTags?.includes(normalizedText)) {
+          state.data.selectedTags!.push(normalizedText);
           userStates.set(chatId, state);
         }
-        return sendSafeMessage(bot, chatId, `✅ Tag "${text}" added. Keep going or type ✅ when done.`);
+        return sendSafeMessage(bot, chatId, `🟢 Tag "${text}" added. Keep going or type ✅ when done.`);
       }
       return bot.sendMessage(chatId, '❌ Invalid tag. Choose from the list or type ✅ when done.', {
         reply_markup: {
@@ -203,30 +168,36 @@ bot.on('message', async (msg: Message) => {
           one_time_keyboard: false,
         },
       });
+    }
 
     case 'awaiting_tags': {
       const tags = text.toLowerCase().split(',').map((t: string) => t.trim()).join(',');
       state.data.tags = tags;
       await addVideo(state.data.title!, state.data.url!, tags);
-      userStates.delete(chatId);
-      return bot.sendMessage(chatId, '✅ Video added successfully!\nWhat next?', {
+      const tagsList = await getAllTags();
+      userStates.set(chatId, { step: 'awaiting_tag', data: {} });
+      return bot.sendMessage(chatId, '✅ Video added! Let’s train — just choose your desired training type:', {
         reply_markup: {
-          keyboard: keyboardFromLabels([['➕ Add Another', '🏠 Main Menu']]),
+          keyboard: keyboardFromLabels(tagsList.map(tag => [tag])),
           one_time_keyboard: true,
         },
       });
     }
 
-    case 'awaiting_tag':
-      state.data.tag = text;
+    case 'awaiting_tag': {
+      const allTags = await getAllTags();
+      const tag = text.trim().toLowerCase();
+      if (!allTags.includes(tag)) return sendSafeMessage(bot, chatId, '❌ Invalid training type. Please choose from the list.');
+      state.data.tag = tag;
       state.step = 'awaiting_count';
       userStates.set(chatId, state);
       return bot.sendMessage(chatId, 'How many videos would you like?', {
         reply_markup: {
-          keyboard: keyboardFromLabels([['1'], ['2'], ['3'], ['4'], ['5']]),
+          keyboard: keyboardFromLabels([[ '1' ], [ '2' ], [ '3' ], [ '4' ], [ '5' ]]),
           one_time_keyboard: true,
         },
       });
+    }
 
     case 'awaiting_count': {
       const count = parseInt(text);
@@ -241,26 +212,26 @@ bot.on('message', async (msg: Message) => {
       if (videos.length < count) sendSafeMessage(bot, chatId, `Only ${videos.length} video(s) available.`);
       state.step = 'post_get_options';
       userStates.set(chatId, state);
-      return bot.sendMessage(chatId, 'What next?', {
+      return bot.sendMessage(chatId, 'Want to explore another training type?', {
         reply_markup: {
-          keyboard: keyboardFromLabels([['🔄 Switch Type', '🏠 Main Menu']]),
+          keyboard: keyboardFromLabels([[ '🔁 Select Training Type' ]]),
           one_time_keyboard: true,
         },
       });
     }
 
     case 'post_get_options':
-      if (text === '🔄 Switch Type') {
+      if (text === '🔁 Select Training Type') {
         const tags = await getAllTags();
         state.step = 'awaiting_tag';
         userStates.set(chatId, state);
-        return bot.sendMessage(chatId, 'Choose a tag:', {
+        return bot.sendMessage(chatId, '💪 Choose the type of training you want:', {
           reply_markup: {
             keyboard: keyboardFromLabels(tags.map(tag => [tag])),
             one_time_keyboard: true,
           },
         });
       }
-      return sendSafeMessage(bot, chatId, 'Please choose a valid option.\n\n(You can always type /start to return to the main menu)');
+      return sendSafeMessage(bot, chatId, 'Please choose a valid option.');
   }
 });
