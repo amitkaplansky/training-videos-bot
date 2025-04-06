@@ -1,7 +1,7 @@
 {
   "name": "training-bot",
   "version": "1.0.0",
-  "main": "dist/main.js", 
+  "main": "dist/main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --watch src --ext ts --exec tsx src/main.ts",
@@ -15,10 +15,12 @@
   "description": "",
   "dependencies": {
     "dotenv": "^16.4.7",
+    "express": "^5.1.0",
     "googleapis": "^148.0.0",
     "node-telegram-bot-api": "^0.66.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.1",
     "@types/node": "^22.14.0",
     "@types/node-telegram-bot-api": "^0.64.8",
     "nodemon": "^3.1.9",

@@ -1,6 +1,6 @@
 import TelegramBot, { Message, KeyboardButton } from 'node-telegram-bot-api';
 import { addVideo, getAllTags, getVideosByTag, isDuplicateUrl } from './googleSheets';
-
+import express from 'express'; 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
@@ -242,8 +242,16 @@ bot.on('message', async (msg: Message) => {
 });
 
 // Prevent Cloud Run from crashing: dummy server
-import http from 'http';
-http.createServer((_, res) => {
-  res.writeHead(200);
-  res.end('Bot is running!');
-}).listen(process.env.PORT || 8080);
+const app = express();
+app.use(express.json());
+
+// Handle incoming webhook updates
+app.post('/webhook', (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
+
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`Bot is running on port ${PORT}`);
+});
