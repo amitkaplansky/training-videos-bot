@@ -1,5 +1,4 @@
 import { google } from 'googleapis';
-import { promises as fs } from 'fs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -9,7 +8,6 @@ const SHEET_NAME = 'Sheet1';
 
 async function getSheetsClient() {
   const auth = new google.auth.GoogleAuth({
-    credentials: JSON.parse(await fs.readFile('./credentials.json', 'utf8')),
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
 
