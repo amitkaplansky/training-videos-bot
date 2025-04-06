@@ -1,11 +1,6 @@
 import TelegramBot, { Message, KeyboardButton } from 'node-telegram-bot-api';
 import dotenv from 'dotenv';
-import {
-  getVideosByTag,
-  getAllTags,
-  addVideo,
-  isDuplicateUrl,
-} from '../googleSheets';
+import { addVideo, getAllTags, getVideosByTag, isDuplicateUrl } from './googleSheets';
 
 dotenv.config();
 
