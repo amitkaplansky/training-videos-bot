@@ -1,3 +1,8 @@
 node_modules
-npm-debug.log
 dist
+.git
+.env
+credentials.json
+Dockerfile
+.dockerignore
+npm-debug.log
