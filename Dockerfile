@@ -1,13 +1,11 @@
-# Use official Node.js image
-FROM node:18
+# Use Node.js LTS image
+FROM node:20
 
 # Create app directory
 WORKDIR /usr/src/app
 
-# Copy package files
+# Install app dependencies
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
 # Copy source code
