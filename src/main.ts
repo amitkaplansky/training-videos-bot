@@ -1,8 +1,9 @@
 import TelegramBot, { Message, KeyboardButton } from 'node-telegram-bot-api';
-import dotenv from 'dotenv';
 import { addVideo, getAllTags, getVideosByTag, isDuplicateUrl } from './googleSheets';
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 const bot = new TelegramBot(process.env.BOT_TOKEN as string, { polling: true });
 
