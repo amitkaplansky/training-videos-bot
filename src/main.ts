@@ -251,6 +251,11 @@ app.post('/webhook', (req, res) => {
   res.sendStatus(200);
 });
 
+app.get('/health', (req, res) => {
+  res.status(200).send('✅ Healthy');
+});
+
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Bot is running on port ${PORT}`);
